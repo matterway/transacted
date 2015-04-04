@@ -20,25 +20,34 @@ module Transacted
       status = nil
       while direction != nil do
         if direction == :up
+
+          if @actions_left.count == 0
+            direction == nil
+            return :execution_success
+          end
+
+          action = @actions_left.shift
+
           begin
-            if @actions_left.count == 0
-              direction == nil
-              return :execution_success
-            end
-            action = @actions_left.shift
-            action.up
+            action_value = action.up
             @executed_actions.push action
-          rescue
+            direction = :down if action_value == false
+          rescue Exception => e
             direction = :down
           end
-        elsif direction == :down
+          
+        elsif direction == :down 
+
+          if @executed_actions.count == 0
+            direction == nil
+            return :rollback_success
+          end
+
+          action = @executed_actions.pop
+
           begin
-            if @executed_actions.count == 0
-              direction == nil
-              return :rollback_success
-            end
-            action = @executed_actions.pop
-            action.down
+            action_value = action.down
+            return :rollback_failure if action_value == false
           rescue
             return :rollback_failure
           end
